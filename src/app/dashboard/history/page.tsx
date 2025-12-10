@@ -8,6 +8,9 @@ import { useFirestore } from "@/firebase";
 import { getDatabase, ref, onValue, get, query, orderByChild, startAt, endAt } from "firebase/database";
 import { useEffect, useState } from "react";
 import { format } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type HistoryData = {
     id: string;
@@ -61,9 +64,8 @@ export default function HistoryPage() {
 
         for (const alatId of alatIdsToFetch) {
             const dataRef = ref(db, `data/${alatId}`);
-            const dataQuery = query(dataRef, orderByChild('timestamp'), startAt(startTimestamp), endAt(endTimestamp));
             
-            const snapshot = await get(ref(db, `data/${alatId}`));
+            const snapshot = await get(dataRef);
 
             if (snapshot.exists()) {
                 const data = snapshot.val();
@@ -113,21 +115,53 @@ export default function HistoryPage() {
                 </div>
                  <div>
                     <Label>Tanggal Mulai</Label>
-                    <Calendar
-                        mode="single"
-                        selected={startDate}
-                        onSelect={setStartDate}
-                        className="p-0 [&_td]:w-8 [&_td]:h-8 [&_th]:w-8 bg-white rounded-md border"
-                    />
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <Button
+                            variant={"outline"}
+                            className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !startDate && "text-muted-foreground"
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {startDate ? format(startDate, "PPP") : <span>Pilih tanggal</span>}
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                        <Calendar
+                            mode="single"
+                            selected={startDate}
+                            onSelect={setStartDate}
+                            initialFocus
+                        />
+                        </PopoverContent>
+                    </Popover>
                 </div>
                 <div>
-                     <Label>Tanggal Selesai</Label>
-                     <Calendar
-                        mode="single"
-                        selected={endDate}
-                        onSelect={setEndDate}
-                        className="p-0 [&_td]:w-8 [&_td]:h-8 [&_th]:w-8 bg-white rounded-md border"
-                    />
+                    <Label>Tanggal Selesai</Label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <Button
+                            variant={"outline"}
+                            className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !endDate && "text-muted-foreground"
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {endDate ? format(endDate, "PPP") : <span>Pilih tanggal</span>}
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                        <Calendar
+                            mode="single"
+                            selected={endDate}
+                            onSelect={setEndDate}
+                            initialFocus
+                        />
+                        </PopoverContent>
+                    </Popover>
                 </div>
                  <div>
                     <Button onClick={handleFilter} className="w-full" disabled={loading}>
