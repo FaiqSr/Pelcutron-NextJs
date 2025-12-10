@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Chart as ChartJS,
   LineElement,
@@ -30,6 +30,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { useFirestore } from '@/firebase';
+import { getDatabase, ref, onValue, off, set, get } from 'firebase/database';
 
 ChartJS.register(
   LineElement,
@@ -42,27 +44,9 @@ ChartJS.register(
   CategoryScale
 );
 
-// Mock data, replace with your actual data fetching
-const alats = [
-  { id: 1, nama: 'Alat 1', type: 'Tipe A', kwh: 1.2 },
-  { id: 2, nama: 'Alat 2', type: 'Tipe B', kwh: 1.5 },
-];
 const PRICE_PER_KWH = 1500;
 
 const emptyConfig = (label: string, color: string) => ({
-  data: {
-    labels: [],
-    datasets: [
-      {
-        label,
-        data: [],
-        borderColor: color,
-        backgroundColor: color,
-        fill: false,
-        tension: 0.1,
-      },
-    ],
-  },
   options: {
     interaction: {
       intersect: false,
@@ -82,44 +66,234 @@ const emptyConfig = (label: string, color: string) => ({
       },
     },
   },
+  data: {
+    labels: [],
+    datasets: [
+      {
+        label,
+        data: [],
+        borderColor: color,
+        backgroundColor: color,
+        fill: false,
+        tension: 0.1,
+      },
+    ],
+  },
 });
 
+type Alat = {
+  id: string;
+  Nama: string;
+  Type: string;
+  KWH: number;
+};
+
+type DataPoint = {
+  t: number;
+  rpm: number | null;
+  berat: number | null;
+  watt: number | null;
+};
+
 export default function DashboardPage() {
-  const [lastSync, setLastSync] = useState('just now');
+  const [alats, setAlats] = useState<Alat[]>([]);
+  const [lastSync, setLastSync] = useState('never');
   const [isSettingOpen, setIsSettingOpen] = useState(false);
   const [isMonitoring, setIsMonitoring] = useState(false);
-  const [currentAlat, setCurrentAlat] = useState('Tidak ada');
+  const [currentAlat, setCurrentAlat] = useState<{ id: string; nama: string } | null>(null);
 
   const [rpmValue, setRpmValue] = useState('—');
   const [beratValue, setBeratValue] = useState('—');
   const [wattValue, setWattValue] = useState('—');
   const [rupiahValue, setRupiahValue] = useState('—');
-  
+
   const [chartDataRPM, setChartDataRPM] = useState(emptyConfig('RPM', '#10B981').data);
   const [chartDataBerat, setChartDataBerat] = useState(emptyConfig('Berat', '#7C3AED').data);
   const [chartDataWatt, setChartDataWatt] = useState(emptyConfig('Daya (W)', '#2563EB').data);
   const [chartDataRupiah, setChartDataRupiah] = useState(emptyConfig('Biaya (Rp)', '#EF4444').data);
 
+  // States for modal inputs
+  const [modalLevel, setModalLevel] = useState('');
+  const [modalBerat, setModalBerat] = useState('');
+  const [modalThreshold, setModalThreshold] = useState('');
+  const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
 
-  const handleMonitor = (alat: any) => {
+  const firestore = useFirestore(); // Although named firestore, this hook gives access to the firebase context
+  const db = firestore ? getDatabase(firestore.app) : null;
+
+  useEffect(() => {
+    if (!db) return;
+
+    const alatsRef = ref(db, 'alat');
+    const listener = onValue(alatsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const alatList: Alat[] = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key],
+        }));
+        setAlats(alatList);
+      } else {
+        setAlats([]);
+      }
+    });
+
+    return () => off(alatsRef, 'value', listener);
+  }, [db]);
+
+  const computeEnergyAndCost = (points: DataPoint[]) => {
+    if (!points || points.length < 2) return { kwh: 0, cost: 0, cumulative: [] };
+  
+    let totalWhSeconds = 0;
+    const cumulative: { t: number; cost: number }[] = [];
+    let accWhSeconds = 0;
+  
+    for (let i = 0; i < points.length - 1; i++) {
+        const p = points[i];
+        const next = points[i+1];
+        const dt = Number(next.t) - Number(p.t); // seconds
+        const power = Number(p.watt) || 0; // W
+        const contribution = power * dt; // W * s
+        
+        if (!isNaN(contribution)) {
+          accWhSeconds += contribution;
+          const kwhSoFar = accWhSeconds / 3600000;
+          cumulative.push({ t: next.t * 1000, cost: kwhSoFar * PRICE_PER_KWH });
+        }
+    }
+  
+    totalWhSeconds = accWhSeconds;
+    const totalKwh = totalWhSeconds / 3600000;
+    const totalCost = totalKwh * PRICE_PER_KWH;
+    return { kwh: totalKwh, cost: totalCost, cumulative };
+  };
+
+  useEffect(() => {
+    if (!isMonitoring || !currentAlat || !db) return;
+
+    // Listener for real-time sensor values (RPM, Berat)
+    const alatValueRef = ref(db, `alat_value/${currentAlat.id}`);
+    const alatValueListener = onValue(alatValueRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setRpmValue(data.rpm ?? '—');
+        setBeratValue(data.berat ? `${data.berat} kg` : '—');
+      }
+      setLastSync(new Date().toLocaleString());
+    });
+    
+    // Listener for historical data to build charts
+    const dataRef = ref(db, `data/${currentAlat.id}`);
+    const dataListener = onValue(dataRef, (snapshot) => {
+        const rawData = snapshot.val() || {};
+        const points: DataPoint[] = Object.keys(rawData).map(key => ({
+            t: Number(key),
+            rpm: rawData[key].rpm,
+            berat: rawData[key].berat,
+            watt: rawData[key].watt,
+        })).sort((a, b) => a.t - b.t);
+
+        setDataPoints(points);
+        if (points.length > 0) {
+            const lastPoint = points[points.length - 1];
+            setWattValue(lastPoint.watt ? `${lastPoint.watt} W` : '—');
+            const { cost, cumulative } = computeEnergyAndCost(points);
+            setRupiahValue(cost ? `Rp ${Math.round(cost).toLocaleString('id-ID')}` : '—');
+
+            const labels = points.map(p => new Date(p.t * 1000));
+
+            setChartDataRPM({
+                labels,
+                datasets: [{ ...chartDataRPM.datasets[0], data: points.map(p => p.rpm) }],
+            });
+            setChartDataBerat({
+                labels,
+                datasets: [{ ...chartDataBerat.datasets[0], data: points.map(p => p.berat) }],
+            });
+            setChartDataWatt({
+                labels,
+                datasets: [{ ...chartDataWatt.datasets[0], data: points.map(p => p.watt) }],
+            });
+            setChartDataRupiah({
+                labels: cumulative.map(c => new Date(c.t)),
+                datasets: [{ ...chartDataRupiah.datasets[0], data: cumulative.map(c => c.cost) }],
+            });
+        }
+    });
+
+    return () => {
+      off(alatValueRef, 'value', alatValueListener);
+      off(dataRef, 'value', dataListener);
+    };
+  }, [isMonitoring, currentAlat, db]);
+
+  const handleMonitor = (alat: Alat) => {
+    if (currentAlat?.id === alat.id && isMonitoring) return;
+    
+    stopMonitoring(); // Stop previous monitoring if any
+    
     setIsMonitoring(true);
-    setCurrentAlat(alat.nama);
-    // In a real app, you would start fetching data here.
-    // For now, we just show the monitor area.
+    setCurrentAlat({ id: alat.id, nama: alat.Nama });
   };
 
   const stopMonitoring = () => {
     setIsMonitoring(false);
-    setCurrentAlat('Tidak ada');
+    setCurrentAlat(null);
     // Clear charts and values
+    setRpmValue('—');
+    setBeratValue('—');
+    setWattValue('—');
+    setRupiahValue('—');
+    setChartDataRPM(emptyConfig('RPM', '#10B981').data);
+    setChartDataBerat(emptyConfig('Berat', '#7C3AED').data);
+    setChartDataWatt(emptyConfig('Daya (W)', '#2563EB').data);
+    setChartDataRupiah(emptyConfig('Biaya (Rp)', '#EF4444').data);
   };
   
-    const handleSaveSettings = () => {
-    const rpm = (document.getElementById('modalRPM') as HTMLSelectElement)?.value;
-    const berat = (document.getElementById('modalBerat') as HTMLInputElement)?.value;
+  const handleOpenSettings = async () => {
+    if (!currentAlat || !db) {
+        alert("Pilih alat untuk dimonitor terlebih dahulu.");
+        return;
+    }
+    
+    const settingsRef = ref(db, `alat_value/${currentAlat.id}`);
+    const snapshot = await get(settingsRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        setModalLevel(data.level?.toString() ?? '');
+        setModalBerat(data.berat?.toString() ?? '');
+        setModalThreshold(data.threshold?.toString() ?? '');
+    } else {
+        // Reset if no data
+        setModalLevel('');
+        setModalBerat('');
+        setModalThreshold('');
+    }
+    setIsSettingOpen(true);
+};
 
-    alert(`Setting disimpan!\nRPM: ${rpm}\nBerat: ${berat}`);
-    setIsSettingOpen(false);
+  const handleSaveSettings = () => {
+    if (!currentAlat || !db) {
+        alert("Tidak ada alat yang sedang dimonitor.");
+        return;
+    }
+    
+    const settingsRef = ref(db, `alat_value/${currentAlat.id}`);
+    
+    const newSettings: { level?: number, berat?: number, threshold?: number } = {};
+    if (modalLevel) newSettings.level = parseInt(modalLevel, 10);
+    if (modalBerat) newSettings.berat = parseFloat(modalBerat);
+    if (modalThreshold) newSettings.threshold = parseFloat(modalThreshold);
+    
+    set(settingsRef, newSettings)
+        .then(() => {
+            alert("Pengaturan berhasil disimpan!");
+            setIsSettingOpen(false);
+        })
+        .catch((error) => {
+            console.error("Gagal menyimpan pengaturan: ", error);
+            alert("Gagal menyimpan pengaturan.");
+        });
   };
 
   return (
@@ -134,7 +308,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="mt-4">
-        <Button onClick={() => setIsSettingOpen(true)}>
+        <Button onClick={handleOpenSettings} disabled={!isMonitoring}>
           Input Pengaturan
         </Button>
       </div>
@@ -163,22 +337,22 @@ export default function DashboardPage() {
                 alats.map((alat, idx) => (
                   <tr className="border-t" key={alat.id}>
                     <td className="px-3 py-2">{idx + 1}</td>
-                    <td className="px-3 py-2">{alat.nama}</td>
-                    <td className="px-3 py-2">{alat.type}</td>
-                    <td className="px-3 py-2">{alat.kwh}</td>
+                    <td className="px-3 py-2">{alat.Nama}</td>
+                    <td className="px-3 py-2">{alat.Type}</td>
+                    <td className="px-3 py-2">{alat.KWH}</td>
                     <td className="px-3 py-2">
                       <button
-                        className="px-3 py-1 rounded bg-emerald-600 text-white text-sm"
+                        className={`px-3 py-1 rounded text-white text-sm ${currentAlat?.id === alat.id && isMonitoring ? 'bg-blue-500' : 'bg-emerald-600'}`}
                         onClick={() => handleMonitor(alat)}
                       >
-                        Monitor
+                        {currentAlat?.id === alat.id && isMonitoring ? 'Monitoring...' : 'Monitor'}
                       </button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td className="px-3 py-2" colSpan={5}>
+                  <td className="px-3 py-2 text-center" colSpan={5}>
                     Belum ada data alat.
                   </td>
                 </tr>
@@ -188,7 +362,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="mt-3 text-sm">
-          Monitoring sekarang: <span id="currentAlat">{currentAlat}</span>
+          Monitoring sekarang: <span id="currentAlat">{currentAlat?.nama || 'Tidak ada'}</span>
           <Button
             id="stopMonitoringBtn"
             variant="outline"
@@ -229,7 +403,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="rounded-xl bg-zinc-600 text-white p-4">
-              <div className="text-sm text-zinc-300">Biaya Pemakaian Daya (1 jam)</div>
+              <div className="text-sm text-zinc-300">Biaya Pemakaian Daya</div>
               <div className="text-2xl font-semibold" id="rupiahValue">
                 {rupiahValue}
               </div>
@@ -265,22 +439,27 @@ export default function DashboardPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
              <div className="space-y-2">
-                <Label htmlFor="modalRPM">Set Mode RPM</Label>
-                 <Select name="rpm" id="modalRPM">
+                <Label htmlFor="modalLevel">Set Mode RPM</Label>
+                 <Select name="level" id="modalLevel" value={modalLevel} onValueChange={setModalLevel}>
                     <SelectTrigger>
                         <SelectValue placeholder="Pilih Level RPM" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="800">Level 1 – 800 RPM</SelectItem>
-                        <SelectItem value="1000">Level 2 – 1000 RPM</SelectItem>
-                        <SelectItem value="1200">Level 3 – 1200 RPM</SelectItem>
-                        <SelectItem value="1400">Level 4 – 1400 RPM</SelectItem>
+                        <SelectItem value="0">Netral</SelectItem>
+                        <SelectItem value="1">Level 1</SelectItem>
+                        <SelectItem value="2">Level 2</SelectItem>
+                        <SelectItem value="3">Level 3</SelectItem>
+                        <SelectItem value="4">Level 4</SelectItem>
                     </SelectContent>
                 </Select>
              </div>
              <div className="space-y-2">
                 <Label htmlFor="modalBerat">Target Berat Pelet (Kg)</Label>
-                <Input type="number" id="modalBerat" placeholder="Masukkan berat" />
+                <Input type="number" id="modalBerat" placeholder="Masukkan berat" value={modalBerat} onChange={e => setModalBerat(e.target.value)} />
+             </div>
+             <div className="space-y-2">
+                <Label htmlFor="modalThreshold">Threshold Berat (Kg)</Label>
+                <Input type="number" id="modalThreshold" placeholder="Masukkan threshold" value={modalThreshold} onChange={e => setModalThreshold(e.target.value)} />
              </div>
           </div>
           <DialogFooter>
