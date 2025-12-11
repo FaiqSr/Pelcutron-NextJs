@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useFirestore } from "@/firebase";
-import { getDatabase, ref, onValue, get, query, orderByChild, startAt, endAt } from "firebase/database";
+import { getDatabase, ref, onValue, get } from "firebase/database";
 import { useEffect, useState } from "react";
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -59,8 +59,9 @@ export default function HistoryPage() {
             ? alats.map(a => a.id) 
             : [selectedAlat];
         
-        const startTimestamp = startDate ? Math.floor(startDate.getTime() / 1000) : 0;
-        const endTimestamp = endDate ? Math.floor(endDate.getTime() / 1000) : Date.now();
+        const startTimestamp = startDate ? Math.floor(new Date(startDate).setHours(0, 0, 0, 0) / 1000) : 0;
+        const endTimestamp = endDate ? Math.floor(new Date(endDate).setHours(23, 59, 59, 999) / 1000) : Math.floor(Date.now() / 1000);
+
 
         for (const alatId of alatIdsToFetch) {
             const dataRef = ref(db, `data/${alatId}`);
