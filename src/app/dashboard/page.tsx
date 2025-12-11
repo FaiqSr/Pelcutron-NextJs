@@ -114,7 +114,6 @@ export default function DashboardPage() {
 
   // States for modal inputs
   const [modalLevel, setModalLevel] = useState('');
-  const [modalBerat, setModalBerat] = useState('');
   const [modalThreshold, setModalThreshold] = useState('');
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
 
@@ -142,30 +141,42 @@ export default function DashboardPage() {
   }, [db]);
 
   const computeEnergyAndCost = (points: DataPoint[]) => {
-    if (!points || points.length < 2) return { kwh: 0, cost: 0, cumulative: [] };
-  
+    if (!points || points.length < 2) return { kwh: 0, cost: 0, costByHour: [] };
+    
     let totalWhSeconds = 0;
-    const cumulative: { t: number; cost: number }[] = [];
-    let accWhSeconds = 0;
-  
+    const hourlyConsumption: { [hourStart: number]: number } = {}; // Store Watt-seconds per hour
+
     for (let i = 0; i < points.length - 1; i++) {
         const p = points[i];
         const next = points[i+1];
         const dt = Number(next.t) - Number(p.t); // seconds
         const power = Number(p.watt) || 0; // W
-        const contribution = power * dt; // W * s
-        
-        if (!isNaN(contribution)) {
-          accWhSeconds += contribution;
-          const kwhSoFar = accWhSeconds / 3600000;
-          cumulative.push({ t: next.t * 1000, cost: kwhSoFar * PRICE_PER_KWH });
+        const energyWhSeconds = power * dt; // W * s
+
+        if (!isNaN(energyWhSeconds)) {
+            totalWhSeconds += energyWhSeconds;
+
+            const date = new Date(p.t * 1000);
+            date.setMinutes(0, 0, 0); // floor to the hour
+            const hourStartTimestamp = Math.floor(date.getTime() / 1000);
+
+            if (!hourlyConsumption[hourStartTimestamp]) {
+                hourlyConsumption[hourStartTimestamp] = 0;
+            }
+            hourlyConsumption[hourStartTimestamp] += energyWhSeconds;
         }
     }
-  
-    totalWhSeconds = accWhSeconds;
+    
     const totalKwh = totalWhSeconds / 3600000;
     const totalCost = totalKwh * PRICE_PER_KWH;
-    return { kwh: totalKwh, cost: totalCost, cumulative };
+    
+    const costByHour = Object.keys(hourlyConsumption).map(hourStart => {
+        const hourTimestamp = parseInt(hourStart, 10) * 1000;
+        const kwhForHour = hourlyConsumption[parseInt(hourStart, 10)] / 3600000;
+        return { t: hourTimestamp, cost: kwhForHour * PRICE_PER_KWH };
+    }).sort((a,b) => a.t - b.t);
+
+    return { kwh: totalKwh, cost: totalCost, costByHour };
   };
 
   useEffect(() => {
@@ -193,7 +204,7 @@ export default function DashboardPage() {
             setBeratValue(lastPoint.berat ? `${lastPoint.berat.toFixed(2)} kg` : '—');
             setWattValue(lastPoint.watt ? `${lastPoint.watt} W` : '—');
 
-            const { cost, cumulative } = computeEnergyAndCost(points);
+            const { cost, costByHour } = computeEnergyAndCost(points);
             setRupiahValue(cost ? `Rp ${Math.round(cost).toLocaleString('id-ID')}` : '—');
 
             const labels = points.map(p => new Date(p.t * 1000));
@@ -210,9 +221,13 @@ export default function DashboardPage() {
                 labels,
                 datasets: [{ ...chartDataWatt.datasets[0], data: points.map(p => p.watt) }],
             });
+            
+            const costChartConfig = emptyConfig('Biaya (Rp)', '#EF4444');
+            costChartConfig.options.scales!.x!.time!.unit = 'hour';
+            
             setChartDataRupiah({
-                labels: cumulative.map(c => new Date(c.t)),
-                datasets: [{ ...chartDataRupiah.datasets[0], data: cumulative.map(c => c.cost) }],
+                labels: costByHour.map(c => new Date(c.t)),
+                datasets: [{ ...costChartConfig.data.datasets[0], data: costByHour.map(c => c.cost) }],
             });
         }
     });
@@ -260,7 +275,6 @@ export default function DashboardPage() {
     } else {
         // Reset if no data
         setModalLevel('');
-        setModalBerat('');
         setModalThreshold('');
     }
     setIsSettingOpen(true);
@@ -422,7 +436,7 @@ export default function DashboardPage() {
                 <Line {...emptyConfig('Daya (W)', '#2563EB')} data={chartDataWatt} />
             </div>
             <div className="rounded-2xl border border-zinc-200 p-4">
-                <div className="font-semibold mb-2">Grafik Biaya Kumulatif (Rp)</div>
+                <div className="font-semibold mb-2">Grafik Biaya per Jam (Rp)</div>
                 <Line {...emptyConfig('Biaya (Rp)', '#EF4444')} data={chartDataRupiah} />
             </div>
           </div>
@@ -464,5 +478,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    
