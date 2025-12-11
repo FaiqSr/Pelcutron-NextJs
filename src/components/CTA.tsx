@@ -1,12 +1,15 @@
+import logoImage from "@/assets/images/logo/Pelcutron_Logo_Mark.png";
+import Image from "next/image";
+
 const CTA = () => {
   return (
     <section className="py-12 sm:py-16 bg-secondary/50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 grid lg:grid-cols-2 gap-10 items-center">
         <div>
           <h3 className="text-2xl sm:text-3xl font-semibold">
-            Order Now{' '}
+            Order Now{" "}
             <span className="text-muted-foreground font-normal">
-              Your AquaPel System
+              Your Pelcutron System
             </span>
           </h3>
           <p className="text-muted-foreground mt-3">
@@ -21,7 +24,9 @@ const CTA = () => {
         <div
           className="aspect-[4/3] rounded-2xl bg-secondary"
           data-ai-hint="shrimp farm water"
-        ></div>
+        >
+          <Image src={logoImage} alt="" />
+        </div>
       </div>
     </section>
   );

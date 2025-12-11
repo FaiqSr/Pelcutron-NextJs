@@ -1,15 +1,12 @@
-'use client';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
-import Navbar from '@/components/Navbar';
-import Hero from '@/components/Hero';
-import Features from '@/components/Features';
-import AutomationSection from '@/components/AutomationSection';
-import BoatSection from '@/components/BoatSection';
-import DashboardPreview from '@/components/DashboardPreview';
-import CTA from '@/components/CTA';
-import Footer from '@/components/Footer';
+"use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/firebase";
+import Hero from "@/components/Hero";
+import AutomationSection from "@/components/AutomationSection";
+import CTA from "@/components/CTA";
+import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
 
 export default function Home() {
   const { user, loading } = useUser();
@@ -17,7 +14,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.push('/dashboard');
+      router.push("/dashboard");
     }
   }, [user, loading, router]);
 
@@ -34,10 +31,7 @@ export default function Home() {
       <Navbar />
       <main>
         <Hero />
-        <Features />
         <AutomationSection />
-        <BoatSection />
-        <DashboardPreview />
         <CTA />
       </main>
       <Footer />

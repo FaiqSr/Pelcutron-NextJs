@@ -1,4 +1,6 @@
-import { Cpu, Zap, AreaChart } from 'lucide-react';
+import image1 from "@/assets/images/peternak-ayam2.png";
+import { Cpu, Zap, AreaChart } from "lucide-react";
+import Image from "next/image";
 
 const Features = () => {
   return (
@@ -6,7 +8,7 @@ const Features = () => {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 grid lg:grid-cols-2 gap-10 items-center">
         <div>
           <h2 className="text-3xl sm:text-4xl font-semibold leading-tight">
-            Digitilize Shrimp Farmer{' '}
+            Digitilize Shrimp Farmer{" "}
             <span className="text-muted-foreground font-normal">
               Through Innovation
             </span>
@@ -15,7 +17,13 @@ const Features = () => {
         <div
           className="aspect-[4/3] rounded-2xl bg-secondary"
           data-ai-hint="shrimp farming technology"
-        ></div>
+        >
+          <Image
+            src={image1}
+            alt="Pelcutron farming technology"
+            className="rounded-lg"
+          />
+        </div>
       </div>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-10">
