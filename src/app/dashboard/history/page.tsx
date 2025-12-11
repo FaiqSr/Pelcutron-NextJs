@@ -1,6 +1,6 @@
 'use client';
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,9 +8,6 @@ import { useFirestore } from "@/firebase";
 import { getDatabase, ref, onValue, get } from "firebase/database";
 import { useEffect, useState } from "react";
 import { format } from 'date-fns';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 type HistoryData = {
     id: string;
@@ -29,8 +26,8 @@ type Alat = {
 export default function HistoryPage() {
     const [alats, setAlats] = useState<Alat[]>([]);
     const [selectedAlat, setSelectedAlat] = useState('all');
-    const [startDate, setStartDate] = useState<Date | undefined>();
-    const [endDate, setEndDate] = useState<Date | undefined>();
+    const [startDate, setStartDate] = useState<string>('');
+    const [endDate, setEndDate] = useState<string>('');
     const [filteredData, setFilteredData] = useState<HistoryData[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -115,54 +112,24 @@ export default function HistoryPage() {
                     </Select>
                 </div>
                  <div>
-                    <Label>Tanggal Mulai</Label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                        <Button
-                            variant={"outline"}
-                            className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !startDate && "text-muted-foreground"
-                            )}
-                        >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {startDate ? format(startDate, "PPP") : <span>Pilih tanggal</span>}
-                        </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                        <Calendar
-                            mode="single"
-                            selected={startDate}
-                            onSelect={setStartDate}
-                            initialFocus
-                        />
-                        </PopoverContent>
-                    </Popover>
+                    <Label htmlFor="startDate">Tanggal Mulai</Label>
+                    <Input 
+                        type="date" 
+                        id="startDate"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="bg-white"
+                    />
                 </div>
                 <div>
-                    <Label>Tanggal Selesai</Label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                        <Button
-                            variant={"outline"}
-                            className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !endDate && "text-muted-foreground"
-                            )}
-                        >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {endDate ? format(endDate, "PPP") : <span>Pilih tanggal</span>}
-                        </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                        <Calendar
-                            mode="single"
-                            selected={endDate}
-                            onSelect={setEndDate}
-                            initialFocus
-                        />
-                        </PopoverContent>
-                    </Popover>
+                    <Label htmlFor="endDate">Tanggal Selesai</Label>
+                    <Input 
+                        type="date" 
+                        id="endDate"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="bg-white"
+                    />
                 </div>
                  <div>
                     <Button onClick={handleFilter} className="w-full" disabled={loading}>
