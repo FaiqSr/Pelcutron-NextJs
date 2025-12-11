@@ -30,8 +30,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { useFirestore } from '@/firebase';
-import { getDatabase, ref, onValue, off, set, get } from 'firebase/database';
+import { useFirebase } from '@/firebase';
+import { getDatabase, ref, onValue, off, set, get, update } from 'firebase/database';
 
 ChartJS.register(
   LineElement,
@@ -118,8 +118,8 @@ export default function DashboardPage() {
   const [modalThreshold, setModalThreshold] = useState('');
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
 
-  const firestore = useFirestore(); // Although named firestore, this hook gives access to the firebase context
-  const db = firestore ? getDatabase(firestore.app) : null;
+  const firebase = useFirebase();
+  const db = firebase ? getDatabase(firebase.app) : null;
 
   useEffect(() => {
     if (!db) return;
@@ -171,13 +171,13 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!isMonitoring || !currentAlat || !db) return;
 
-    // Listener for real-time sensor values (RPM, Berat)
+    // Listener for real-time sensor values (RPM, Berat) from alat_value
     const alatValueRef = ref(db, `alat_value/${currentAlat.id}`);
     const alatValueListener = onValue(alatValueRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         setRpmValue(data.rpm ?? '—');
-        setBeratValue(data.berat ? `${data.berat} kg` : '—');
+        setBeratValue(data.berat ? `${data.berat.toFixed(2)} kg` : '—');
       }
       setLastSync(new Date().toLocaleString());
     });
@@ -261,7 +261,7 @@ export default function DashboardPage() {
     if (snapshot.exists()) {
         const data = snapshot.val();
         setModalLevel(data.level?.toString() ?? '');
-        setModalBerat(data.berat?.toString() ?? '');
+        setModalBerat(data.berat?.toString() ?? ''); // ESP32 seems to only use threshold, but we sync with UI
         setModalThreshold(data.threshold?.toString() ?? '');
     } else {
         // Reset if no data
@@ -281,11 +281,17 @@ export default function DashboardPage() {
     const settingsRef = ref(db, `alat_value/${currentAlat.id}`);
     
     const newSettings: { level?: number, berat?: number, threshold?: number } = {};
-    if (modalLevel) newSettings.level = parseInt(modalLevel, 10);
-    if (modalBerat) newSettings.berat = parseFloat(modalBerat);
-    if (modalThreshold) newSettings.threshold = parseFloat(modalThreshold);
+
+    const level = parseInt(modalLevel, 10);
+    if (!isNaN(level)) newSettings.level = level;
+
+    const berat = parseFloat(modalBerat);
+    if (!isNaN(berat)) newSettings.berat = berat;
+
+    const threshold = parseFloat(modalThreshold);
+    if (!isNaN(threshold)) newSettings.threshold = threshold;
     
-    set(settingsRef, newSettings)
+    update(settingsRef, newSettings)
         .then(() => {
             alert("Pengaturan berhasil disimpan!");
             setIsSettingOpen(false);
@@ -387,7 +393,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="rounded-xl bg-zinc-900 text-white p-4">
-              <div className="text-sm text-zinc-300">Target Berat Pelet</div>
+              <div className="text-sm text-zinc-300">Berat Aktual</div>
               <div className="text-2xl font-semibold" id="beratValue">
                 {beratValue}
               </div>
@@ -471,3 +477,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
