@@ -170,19 +170,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!isMonitoring || !currentAlat || !db) return;
-
-    // Listener for real-time sensor values (RPM, Berat) from tools_value
-    const alatValueRef = ref(db, `tools_value/${currentAlat.id}`);
-    const alatValueListener = onValue(alatValueRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setRpmValue(data.rpm ?? '—');
-        setBeratValue(data.berat ? `${data.berat.toFixed(2)} kg` : '—');
-      }
-      setLastSync(new Date().toLocaleString());
-    });
     
-    // Listener for historical data to build charts
+    // Listener for historical data to build charts and update cards
     const dataRef = ref(db, `data/${currentAlat.id}`);
     const dataListener = onValue(dataRef, (snapshot) => {
         const rawData = snapshot.val() || {};
@@ -194,9 +183,16 @@ export default function DashboardPage() {
         })).sort((a, b) => a.t - b.t);
 
         setDataPoints(points);
+        setLastSync(new Date().toLocaleString());
+
         if (points.length > 0) {
             const lastPoint = points[points.length - 1];
+            
+            // Update cards with the latest data from the 'data' path
+            setRpmValue(lastPoint.rpm?.toString() ?? '—');
+            setBeratValue(lastPoint.berat ? `${lastPoint.berat.toFixed(2)} kg` : '—');
             setWattValue(lastPoint.watt ? `${lastPoint.watt} W` : '—');
+
             const { cost, cumulative } = computeEnergyAndCost(points);
             setRupiahValue(cost ? `Rp ${Math.round(cost).toLocaleString('id-ID')}` : '—');
 
@@ -222,7 +218,6 @@ export default function DashboardPage() {
     });
 
     return () => {
-      off(alatValueRef, 'value', alatValueListener);
       off(dataRef, 'value', dataListener);
     };
   }, [isMonitoring, currentAlat, db]);
@@ -285,9 +280,6 @@ export default function DashboardPage() {
     const level = parseInt(modalLevel, 10);
     if (!isNaN(level)) newSettings.level = level;
 
-    // Based on your C++ code, the "Target Berat Pelet" seems to be part of the control logic, 
-    // but isn't explicitly sent back to Firebase control path.
-    // Assuming 'berat' setting on 'tools_value' is for the target weight.
     const berat = parseFloat(modalBerat);
     if (!isNaN(berat)) newSettings.berat = berat;
 
@@ -480,3 +472,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
