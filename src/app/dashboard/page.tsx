@@ -171,8 +171,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!isMonitoring || !currentAlat || !db) return;
 
-    // Listener for real-time sensor values (RPM, Berat) from alat_value
-    const alatValueRef = ref(db, `alat_value/${currentAlat.id}`);
+    // Listener for real-time sensor values (RPM, Berat) from tools_value
+    const alatValueRef = ref(db, `tools_value/${currentAlat.id}`);
     const alatValueListener = onValue(alatValueRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -256,7 +256,7 @@ export default function DashboardPage() {
         return;
     }
     
-    const settingsRef = ref(db, `alat_value/${currentAlat.id}`);
+    const settingsRef = ref(db, `tools_value/${currentAlat.id}`);
     const snapshot = await get(settingsRef);
     if (snapshot.exists()) {
         const data = snapshot.val();
@@ -278,13 +278,16 @@ export default function DashboardPage() {
         return;
     }
     
-    const settingsRef = ref(db, `alat_value/${currentAlat.id}`);
+    const settingsRef = ref(db, `tools_value/${currentAlat.id}`);
     
     const newSettings: { level?: number, berat?: number, threshold?: number } = {};
 
     const level = parseInt(modalLevel, 10);
     if (!isNaN(level)) newSettings.level = level;
 
+    // Based on your C++ code, the "Target Berat Pelet" seems to be part of the control logic, 
+    // but isn't explicitly sent back to Firebase control path.
+    // Assuming 'berat' setting on 'tools_value' is for the target weight.
     const berat = parseFloat(modalBerat);
     if (!isNaN(berat)) newSettings.berat = berat;
 
