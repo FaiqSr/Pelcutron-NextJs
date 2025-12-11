@@ -256,7 +256,6 @@ export default function DashboardPage() {
     if (snapshot.exists()) {
         const data = snapshot.val();
         setModalLevel(data.level?.toString() ?? '');
-        setModalBerat(data.berat?.toString() ?? '');
         setModalThreshold(data.threshold?.toString() ?? '');
     } else {
         // Reset if no data
@@ -275,13 +274,10 @@ export default function DashboardPage() {
     
     const settingsRef = ref(db, `tools_value/${currentAlat.id}`);
     
-    const newSettings: { level?: number, berat?: number, threshold?: number } = {};
+    const newSettings: { level?: number, threshold?: number } = {};
 
     const level = parseInt(modalLevel, 10);
     if (!isNaN(level)) newSettings.level = level;
-
-    const berat = parseFloat(modalBerat);
-    if (!isNaN(berat)) newSettings.berat = berat;
 
     const threshold = parseFloat(modalThreshold);
     if (!isNaN(threshold)) newSettings.threshold = threshold;
@@ -453,10 +449,6 @@ export default function DashboardPage() {
                         <SelectItem value="4">Level 4</SelectItem>
                     </SelectContent>
                 </Select>
-             </div>
-             <div className="space-y-2">
-                <Label htmlFor="modalBerat">Target Berat Pelet (Kg)</Label>
-                <Input type="number" id="modalBerat" placeholder="Masukkan berat" value={modalBerat} onChange={e => setModalBerat(e.target.value)} />
              </div>
              <div className="space-y-2">
                 <Label htmlFor="modalThreshold">Threshold Berat (Kg)</Label>
