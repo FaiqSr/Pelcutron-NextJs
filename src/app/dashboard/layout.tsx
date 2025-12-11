@@ -1,10 +1,11 @@
 'use client';
 
 import { useAuth, useUser } from '@/firebase';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function DashboardLayout({
   children,
@@ -14,6 +15,7 @@ export default function DashboardLayout({
   const { user, loading } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -36,6 +38,9 @@ export default function DashboardLayout({
       </div>
     );
   }
+
+  const baseClasses = "block px-3 py-2 rounded-lg hover:bg-white hover:border border-transparent hover:border-zinc-200";
+  const activeClasses = "bg-white border border-zinc-200 font-medium";
 
   return (
     <div className="min-h-screen grid grid-cols-12 bg-white text-zinc-800">
@@ -78,13 +83,13 @@ export default function DashboardLayout({
         <nav className="space-y-1 text-sm">
           <Link
             href="/dashboard"
-            className="block px-3 py-2 rounded-lg bg-white border border-zinc-200 font-medium"
+            className={cn(baseClasses, pathname === '/dashboard' && activeClasses)}
           >
             Dashboard
           </Link>
           <Link
             href="/dashboard/history"
-            className="block px-3 py-2 rounded-lg hover:bg-white hover:border border-transparent hover:border-zinc-200"
+            className={cn(baseClasses, pathname === '/dashboard/history' && activeClasses)}
           >
             Histori Data
           </Link>
