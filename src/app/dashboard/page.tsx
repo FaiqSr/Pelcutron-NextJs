@@ -261,7 +261,7 @@ export default function DashboardPage() {
     if (snapshot.exists()) {
         const data = snapshot.val();
         setModalLevel(data.level?.toString() ?? '');
-        setModalBerat(data.berat?.toString() ?? ''); // ESP32 seems to only use threshold, but we sync with UI
+        setModalBerat(data.berat?.toString() ?? '');
         setModalThreshold(data.threshold?.toString() ?? '');
     } else {
         // Reset if no data
@@ -477,5 +477,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    
