@@ -1,3 +1,6 @@
+import Image from "next/image";
+import image1 from "../assets/images/peternak-ayam.png";
+
 const Hero = () => {
   return (
     <section className="relative">
@@ -8,11 +11,11 @@ const Hero = () => {
             Empowering Smart Shrimp Farming
           </div>
           <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight">
-            Automate{' '}
+            Automate{" "}
             <span className="text-muted-foreground font-normal">
               Monitoring with
-            </span>{' '}
-            AquaPel System
+            </span>{" "}
+            Pelcutron System
           </h1>
           <p className="text-muted-foreground max-w-xl">
             Real‑time pond metrics, anomaly alerts, and insights to maximize
@@ -29,13 +32,13 @@ const Hero = () => {
           </div>
           <div className="flex items-center gap-6 pt-2 text-sm text-muted-foreground">
             <div>
-              <span className="font-semibold text-foreground">295.4K+</span>{' '}
+              <span className="font-semibold text-foreground">295.4K+</span>{" "}
               data points daily
             </div>
             <div className="hidden sm:block h-4 w-px bg-border"></div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-foreground">728M+</span>{' '}
-              happy shrimps
+              <span className="font-semibold text-foreground">728M+</span> happy
+              shrimps
               <div className="flex -space-x-2">
                 <div className="h-5 w-5 rounded-full bg-primary"></div>
                 <div className="h-5 w-5 rounded-full bg-primary/80"></div>
@@ -49,7 +52,9 @@ const Hero = () => {
           <div
             className="aspect-[4/3] w-full rounded-2xl bg-secondary"
             data-ai-hint="shrimp farm boat"
-          ></div>
+          >
+            <Image src={image1} alt="" className="rounded-lg" />
+          </div>
         </div>
       </div>
     </section>

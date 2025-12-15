@@ -1,16 +1,24 @@
-import { Bot, LineChart } from 'lucide-react';
+import image1 from "@/assets/images/pencacah-ayam.jpg";
+import { Bot, LineChart } from "lucide-react";
+import Image from "next/image";
 
 const AutomationSection = () => {
   return (
     <section className="py-10 sm:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 grid lg:grid-cols-2 gap-10 items-start">
         <div
-          className="aspect-[3/4] rounded-2xl bg-secondary"
+          className="aspect-square rounded-2xl bg-secondary"
           data-ai-hint="aquaculture technology"
-        ></div>
+        >
+          <Image
+            src={image1}
+            alt="Aquaculture technology"
+            className="rounded-lg object-cover h-full w-full"
+          />
+        </div>
         <div className="space-y-6">
           <h2 className="text-3xl sm:text-4xl font-semibold">
-            Transforming Farmers{' '}
+            Transforming Farmers{" "}
             <span className="text-muted-foreground font-normal">
               into Automation
             </span>

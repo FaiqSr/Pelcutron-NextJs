@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { LogoIcon } from './icons';
+import Link from "next/link";
+import { LogoIcon } from "./icons";
 
 const Footer = () => {
   return (
@@ -8,13 +8,13 @@ const Footer = () => {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <LogoIcon className="text-primary" />
-            <span className="font-semibold text-foreground">AquaPel</span>
+            <span className="font-semibold text-foreground">Pelcutron</span>
           </div>
           <p className="text-muted-foreground">
             Smart monitoring for modern aquaculture.
           </p>
           <p className="text-muted-foreground">
-            &copy; {new Date().getFullYear()} AquaPel. All rights reserved.
+            &copy; {new Date().getFullYear()} Pelcutron. All rights reserved.
           </p>
         </div>
         <div>
@@ -58,9 +58,11 @@ const Footer = () => {
           </ul>
         </div>
         <div>
-          <div className="font-semibold mb-2 text-foreground">Quick Contact</div>
+          <div className="font-semibold mb-2 text-foreground">
+            Quick Contact
+          </div>
           <ul className="space-y-1 text-muted-foreground">
-            <li>Email: hello@aquapel.app</li>
+            <li>Email: hello@Pelcutron.app</li>
             <li>Phone: +62 812‑3456‑7890</li>
             <li>Address: Indonesia</li>
           </ul>

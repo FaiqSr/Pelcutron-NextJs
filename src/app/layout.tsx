@@ -1,12 +1,12 @@
-import type { Metadata } from 'next';
-import { Toaster } from '@/components/ui/toaster';
-import './globals.css';
-import { FirebaseClientProvider } from '@/firebase/client-provider';
+import type { Metadata } from "next";
+import { Toaster } from "@/components/ui/toaster";
+import "./globals.css";
+import { FirebaseClientProvider } from "@/firebase/client-provider";
 
 export const metadata: Metadata = {
-  title: 'AquaPel – Smart Shrimp Farming',
+  title: "AquaPel – Smart Shrimp Farming",
   description:
-    'Automate Monitoring with AquaPel System—powered by our IoT monitoring boat and integrated dashboard.',
+    "Automate Monitoring with AquaPel System—powered by our IoT monitoring boat and integrated dashboard.",
 };
 
 export default function RootLayout({

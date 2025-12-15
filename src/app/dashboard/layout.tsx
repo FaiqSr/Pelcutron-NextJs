@@ -1,11 +1,14 @@
-'use client';
+"use client";
 
-import { useAuth, useUser } from '@/firebase';
-import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import imageLogo from "@/assets/images/logo/Pelcutron_Logo_Mark.png";
+
+import { useAuth, useUser } from "@/firebase";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 export default function DashboardLayout({
   children,
@@ -20,14 +23,14 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/login');
+      router.push("/login");
     }
   }, [user, loading, router]);
 
   const handleLogout = async () => {
     if (auth) {
       await auth.signOut();
-      router.push('/login');
+      router.push("/login");
     }
   };
 
@@ -39,7 +42,8 @@ export default function DashboardLayout({
     );
   }
 
-  const baseClasses = "block px-3 py-2 rounded-lg hover:bg-white hover:border border-transparent hover:border-zinc-200";
+  const baseClasses =
+    "block px-3 py-2 rounded-lg hover:bg-white hover:border border-transparent hover:border-zinc-200";
   const activeClasses = "bg-white border border-zinc-200 font-medium";
 
   return (
@@ -72,24 +76,31 @@ export default function DashboardLayout({
       <aside
         id="sidebar"
         className={`col-span-12 md:col-span-2 border-r border-zinc-200 bg-zinc-50 p-4 ${
-          sidebarOpen ? 'block' : 'hidden'
+          sidebarOpen ? "block" : "hidden"
         } fixed inset-y-0 left-0 w-72 z-40 md:static md:w-auto md:block`}
       >
         <div className="flex items-center gap-2 mb-6">
-          <div className="h-6 w-6 rounded bg-zinc-900"></div>
+          {/* <div className="h-6 w-6 rounded bg-zinc-900"></div> */}
+          <Image src={imageLogo} alt="" className="w-10" />
           <div className="font-semibold">Pelcutron</div>
         </div>
 
         <nav className="space-y-1 text-sm">
           <Link
             href="/dashboard"
-            className={cn(baseClasses, pathname === '/dashboard' && activeClasses)}
+            className={cn(
+              baseClasses,
+              pathname === "/dashboard" && activeClasses
+            )}
           >
             Dashboard
           </Link>
           <Link
             href="/dashboard/history"
-            className={cn(baseClasses, pathname === '/dashboard/history' && activeClasses)}
+            className={cn(
+              baseClasses,
+              pathname === "/dashboard/history" && activeClasses
+            )}
           >
             Histori Data
           </Link>
@@ -99,12 +110,6 @@ export default function DashboardLayout({
           <div className="text-xs uppercase text-zinc-500 tracking-wide mb-1">
             Other
           </div>
-          <a
-            href="#"
-            className="block px-3 py-2 rounded-lg hover:bg-white hover:border border-transparent hover:border-zinc-200 text-sm"
-          >
-            Profil
-          </a>
           <button
             onClick={handleLogout}
             className="w-full text-left block px-3 py-2 rounded-lg hover:bg-white hover:border border-transparent hover:border-zinc-200 text-sm"

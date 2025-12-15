@@ -1,31 +1,31 @@
-'use client';
+"use client";
 
 import {
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   signInWithPopup,
-} from 'firebase/auth';
-import { useAuth, useUser } from '@/firebase';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { LogoIcon } from '@/components/icons';
-import Link from 'next/link';
-import { useToast } from '@/hooks/use-toast';
+} from "firebase/auth";
+import { useAuth, useUser } from "@/firebase";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { LogoIcon } from "@/components/icons";
+import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const auth = useAuth();
   const { user, loading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     if (user) {
-      router.push('/dashboard');
+      router.push("/dashboard");
     }
   }, [user, router]);
 
@@ -34,11 +34,11 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      router.push('/dashboard');
+      router.push("/dashboard");
     } catch (error: any) {
       toast({
-        variant: 'destructive',
-        title: 'Uh oh! Something went wrong.',
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
         description: error.message,
       });
     }
@@ -49,11 +49,11 @@ export default function LoginPage() {
     if (!auth) return;
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/dashboard');
+      router.push("/dashboard");
     } catch (error: any) {
       toast({
-        variant: 'destructive',
-        title: 'Uh oh! Something went wrong.',
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
         description: error.message,
       });
     }
@@ -69,12 +69,6 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3">
-          <LogoIcon className="text-primary" />
-          <span className="font-semibold text-foreground">AquaPel</span>
-        </Link>
-      </header>
       <main className="flex flex-1 items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-4">
           <div className="text-center">
@@ -127,11 +121,8 @@ export default function LoginPage() {
             Google
           </Button>
           <p className="text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{' '}
-            <Link
-              href="/register"
-              className="underline hover:text-primary"
-            >
+            Don&apos;t have an account?{" "}
+            <Link href="/register" className="underline hover:text-primary">
               Sign up
             </Link>
           </p>

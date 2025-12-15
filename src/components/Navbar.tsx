@@ -1,13 +1,14 @@
-import Link from 'next/link';
-import { LogoIcon } from './icons';
+import Link from "next/link";
+import logo from "@/assets/images/logo/Pelcutron_Logo_Main.png";
+import { LogoIcon } from "./icons";
+import Image from "next/image";
 
 const Navbar = () => {
   return (
     <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b border-border">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
-          <LogoIcon className="text-primary" />
-          <span className="font-semibold text-foreground">AquaPel</span>
+          <Image src={logo} alt="Logo Pelcutron" className="w-28" />
         </Link>
         <nav className="hidden md:flex items-center gap-6 text-sm">
           <Link

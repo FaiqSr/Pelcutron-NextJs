@@ -1,5 +1,5 @@
-'use client';
-import { useState, useEffect } from 'react';
+"use client";
+import { useState, useEffect } from "react";
 import {
   Chart as ChartJS,
   LineElement,
@@ -34,7 +34,7 @@ const emptyConfig = (label: string, color: string) => ({
   options: {
     interaction: {
       intersect: false,
-      mode: 'index' as const,
+      mode: "index" as const,
     },
     plugins: {
       legend: {
@@ -43,9 +43,9 @@ const emptyConfig = (label: string, color: string) => ({
     },
     scales: {
       x: {
-        type: 'time' as const,
+        type: "time" as const,
         time: {
-          unit: 'minute' as const,
+          unit: "minute" as const,
         },
       },
     },
@@ -101,7 +101,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!db) return;
 
-    const alatsRef = ref(db, 'alat');
+    const alatsRef = ref(db, "alat");
     const listener = onValue(alatsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -115,51 +115,54 @@ export default function DashboardPage() {
       }
     });
 
-    return () => off(alatsRef, 'value', listener);
+    return () => off(alatsRef, "value", listener);
   }, [db]);
 
   const computeEnergyAndCost = (points: DataPoint[]) => {
-    if (!points || points.length < 2) return { kwh: 0, cost: 0, costByHour: [] };
-    
+    if (!points || points.length < 2)
+      return { kwh: 0, cost: 0, costByHour: [] };
+
     let totalWhSeconds = 0;
     const hourlyConsumption: { [hourStart: number]: number } = {}; // Store Watt-seconds per hour
 
     for (let i = 0; i < points.length - 1; i++) {
-        const p = points[i];
-        const next = points[i+1];
-        const dt = Number(next.t) - Number(p.t); // seconds
-        const power = Number(p.watt) || 0; // W
-        const energyWhSeconds = power * dt; // W * s
+      const p = points[i];
+      const next = points[i + 1];
+      const dt = Number(next.t) - Number(p.t); // seconds
+      const power = Number(p.watt) || 0; // W
+      const energyWhSeconds = power * dt; // W * s
 
-        if (!isNaN(energyWhSeconds)) {
-            totalWhSeconds += energyWhSeconds;
+      if (!isNaN(energyWhSeconds)) {
+        totalWhSeconds += energyWhSeconds;
 
-            const date = new Date(p.t * 1000);
-            date.setMinutes(0, 0, 0); // floor to the hour
-            const hourStartTimestamp = Math.floor(date.getTime() / 1000);
+        const date = new Date(p.t * 1000);
+        date.setMinutes(0, 0, 0); // floor to the hour
+        const hourStartTimestamp = Math.floor(date.getTime() / 1000);
 
-            if (!hourlyConsumption[hourStartTimestamp]) {
-                hourlyConsumption[hourStartTimestamp] = 0;
-            }
-            hourlyConsumption[hourStartTimestamp] += energyWhSeconds;
+        if (!hourlyConsumption[hourStartTimestamp]) {
+          hourlyConsumption[hourStartTimestamp] = 0;
         }
+        hourlyConsumption[hourStartTimestamp] += energyWhSeconds;
+      }
     }
-    
+
     const totalKwh = totalWhSeconds / 3600000;
     const totalCost = totalKwh * PRICE_PER_KWH;
-    
-    const costByHour = Object.keys(hourlyConsumption).map(hourStart => {
+
+    const costByHour = Object.keys(hourlyConsumption)
+      .map((hourStart) => {
         const hourTimestamp = parseInt(hourStart, 10) * 1000;
         const kwhForHour = hourlyConsumption[parseInt(hourStart, 10)] / 3600000;
         return { t: hourTimestamp, cost: kwhForHour * PRICE_PER_KWH };
-    }).sort((a,b) => a.t - b.t);
+      })
+      .sort((a, b) => a.t - b.t);
 
     return { kwh: totalKwh, cost: totalCost, costByHour };
   };
 
   useEffect(() => {
     if (!isMonitoring || !currentAlat || !db) return;
-    
+
     // Listener for historical data to build charts and update cards
     const dataRef = ref(db, `data/${currentAlat.id}`);
     const dataListener = onValue(dataRef, (snapshot) => {
@@ -210,15 +213,15 @@ export default function DashboardPage() {
     });
 
     return () => {
-      off(dataRef, 'value', dataListener);
+      off(dataRef, "value", dataListener);
     };
   }, [isMonitoring, currentAlat, db]);
 
   const handleMonitor = (alat: Alat) => {
     if (currentAlat?.id === alat.id && isMonitoring) return;
-    
+
     stopMonitoring(); // Stop previous monitoring if any
-    
+
     setIsMonitoring(true);
     setCurrentAlat({ id: alat.id, nama: alat.Nama });
   };
@@ -227,16 +230,63 @@ export default function DashboardPage() {
     setIsMonitoring(false);
     setCurrentAlat(null);
     // Clear charts and values
-    setRpmValue('—');
-    setBeratValue('—');
-    setWattValue('—');
-    setRupiahValue('—');
-    setChartDataRPM(emptyConfig('RPM', '#10B981').data);
-    setChartDataBerat(emptyConfig('Berat', '#7C3AED').data);
-    setChartDataWatt(emptyConfig('Daya (W)', '#2563EB').data);
-    setChartDataRupiah(emptyConfig('Biaya (Rp)', '#EF4444').data);
+    setRpmValue("—");
+    setBeratValue("—");
+    setWattValue("—");
+    setRupiahValue("—");
+    setChartDataRPM(emptyConfig("RPM", "#10B981").data);
+    setChartDataBerat(emptyConfig("Berat", "#7C3AED").data);
+    setChartDataWatt(emptyConfig("Daya (W)", "#2563EB").data);
+    setChartDataRupiah(emptyConfig("Biaya (Rp)", "#EF4444").data);
   };
-  
+
+  const handleOpenSettings = async () => {
+    if (!currentAlat || !db) {
+      alert("Pilih alat untuk dimonitor terlebih dahulu.");
+      return;
+    }
+
+    const settingsRef = ref(db, `tools_value/${currentAlat.id}`);
+    const snapshot = await get(settingsRef);
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      setModalLevel(data.level?.toString() ?? "");
+      setModalThreshold(data.threshold?.toString() ?? "");
+    } else {
+      // Reset if no data
+      setModalLevel("");
+      setModalThreshold("");
+    }
+    setIsSettingOpen(true);
+  };
+
+  const handleSaveSettings = () => {
+    if (!currentAlat || !db) {
+      alert("Tidak ada alat yang sedang dimonitor.");
+      return;
+    }
+
+    const settingsRef = ref(db, `tools_value/${currentAlat.id}`);
+
+    const newSettings: { level?: number; threshold?: number } = {};
+
+    const level = parseInt(modalLevel, 10);
+    if (!isNaN(level)) newSettings.level = level;
+
+    const threshold = parseFloat(modalThreshold);
+    if (!isNaN(threshold)) newSettings.threshold = threshold;
+
+    update(settingsRef, newSettings)
+      .then(() => {
+        alert("Pengaturan berhasil disimpan!");
+        setIsSettingOpen(false);
+      })
+      .catch((error) => {
+        console.error("Gagal menyimpan pengaturan: ", error);
+        alert("Gagal menyimpan pengaturan.");
+      });
+  };
+
   return (
     <>
       <div className="flex items-center justify-between">
@@ -277,10 +327,16 @@ export default function DashboardPage() {
                     <td className="px-3 py-2">{alat.KWH}</td>
                     <td className="px-3 py-2">
                       <button
-                        className={`px-3 py-1 rounded text-white text-sm ${currentAlat?.id === alat.id && isMonitoring ? 'bg-blue-500' : 'bg-emerald-600'}`}
+                        className={`px-3 py-1 rounded text-white text-sm ${
+                          currentAlat?.id === alat.id && isMonitoring
+                            ? "bg-blue-500"
+                            : "bg-emerald-600"
+                        }`}
                         onClick={() => handleMonitor(alat)}
                       >
-                        {currentAlat?.id === alat.id && isMonitoring ? 'Monitoring...' : 'Monitor'}
+                        {currentAlat?.id === alat.id && isMonitoring
+                          ? "Monitoring..."
+                          : "Monitor"}
                       </button>
                     </td>
                   </tr>
@@ -297,7 +353,8 @@ export default function DashboardPage() {
         </div>
 
         <div className="mt-3 text-sm">
-          Monitoring sekarang: <span id="currentAlat">{currentAlat?.nama || 'Tidak ada'}</span>
+          Monitoring sekarang:{" "}
+          <span id="currentAlat">{currentAlat?.nama || "Tidak ada"}</span>
           <Button
             id="stopMonitoringBtn"
             variant="outline"
@@ -309,7 +366,7 @@ export default function DashboardPage() {
           </Button>
         </div>
       </div>
-      
+
       {isMonitoring && (
         <div id="monitorArea">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
@@ -326,7 +383,9 @@ export default function DashboardPage() {
               <div className="text-2xl font-semibold" id="beratValue">
                 {beratValue}
               </div>
-              <div className="mt-2 text-xs text-zinc-400">Akurasi Sensor Baik</div>
+              <div className="mt-2 text-xs text-zinc-400">
+                Akurasi Sensor Baik
+              </div>
             </div>
 
             <div className="rounded-xl bg-zinc-600 text-white p-4">
@@ -345,23 +404,34 @@ export default function DashboardPage() {
               <div className="mt-2 text-xs text-zinc-400">Estimasi</div>
             </div>
           </div>
-          
+
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="rounded-2xl border border-zinc-200 p-4">
-                <div className="font-semibold mb-2">Grafik RPM</div>
-                <Line {...emptyConfig('RPM', '#10B981')} data={chartDataRPM} />
+              <div className="font-semibold mb-2">Grafik RPM</div>
+              <Line {...emptyConfig("RPM", "#10B981")} data={chartDataRPM} />
             </div>
             <div className="rounded-2xl border border-zinc-200 p-4">
-                <div className="font-semibold mb-2">Grafik Berat Load Cell</div>
-                <Line {...emptyConfig('Berat', '#7C3AED')} data={chartDataBerat} />
+              <div className="font-semibold mb-2">Grafik Berat Load Cell</div>
+              <Line
+                {...emptyConfig("Berat", "#7C3AED")}
+                data={chartDataBerat}
+              />
             </div>
             <div className="rounded-2xl border border-zinc-200 p-4">
-                <div className="font-semibold mb-2">Grafik Daya (W)</div>
-                <Line {...emptyConfig('Daya (W)', '#2563EB')} data={chartDataWatt} />
+              <div className="font-semibold mb-2">Grafik Daya (W)</div>
+              <Line
+                {...emptyConfig("Daya (W)", "#2563EB")}
+                data={chartDataWatt}
+              />
             </div>
             <div className="rounded-2xl border border-zinc-200 p-4">
-                <div className="font-semibold mb-2">Grafik Biaya per Jam (Rp)</div>
-                <Line {...emptyConfig('Biaya (Rp)', '#EF4444')} data={chartDataRupiah} />
+              <div className="font-semibold mb-2">
+                Grafik Biaya per Jam (Rp)
+              </div>
+              <Line
+                {...emptyConfig("Biaya (Rp)", "#EF4444")}
+                data={chartDataRupiah}
+              />
             </div>
           </div>
         </div>
