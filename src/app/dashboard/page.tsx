@@ -10,36 +10,12 @@ import {
   Legend,
   TimeScale,
   CategoryScale,
-} from "chart.js";
-import "chartjs-adapter-date-fns";
-import { Line } from "react-chartjs-2";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { useFirebase } from "@/firebase";
-import {
-  getDatabase,
-  ref,
-  onValue,
-  off,
-  set,
-  get,
-  update,
-} from "firebase/database";
+} from 'chart.js';
+import 'chartjs-adapter-date-fns';
+import { Line } from 'react-chartjs-2';
+import { Button } from '@/components/ui/button';
+import { useFirebase } from '@/firebase';
+import { getDatabase, ref, onValue, off } from 'firebase/database';
 
 ChartJS.register(
   LineElement,
@@ -105,37 +81,20 @@ type DataPoint = {
 
 export default function DashboardPage() {
   const [alats, setAlats] = useState<Alat[]>([]);
-  const [lastSync, setLastSync] = useState("never");
-  const [isSettingOpen, setIsSettingOpen] = useState(false);
+  const [lastSync, setLastSync] = useState('never');
   const [isMonitoring, setIsMonitoring] = useState(false);
-  const [currentAlat, setCurrentAlat] = useState<{
-    id: string;
-    nama: string;
-  } | null>(null);
+  const [currentAlat, setCurrentAlat] = useState<{ id: string; nama: string } | null>(null);
 
-  const [rpmValue, setRpmValue] = useState("—");
-  const [beratValue, setBeratValue] = useState("—");
-  const [wattValue, setWattValue] = useState("—");
-  const [rupiahValue, setRupiahValue] = useState("—");
+  const [rpmValue, setRpmValue] = useState('—');
+  const [beratValue, setBeratValue] = useState('—');
+  const [wattValue, setWattValue] = useState('—');
+  const [rupiahValue, setRupiahValue] = useState('—');
 
-  const [chartDataRPM, setChartDataRPM] = useState(
-    emptyConfig("RPM", "#10B981").data
-  );
-  const [chartDataBerat, setChartDataBerat] = useState(
-    emptyConfig("Berat", "#7C3AED").data
-  );
-  const [chartDataWatt, setChartDataWatt] = useState(
-    emptyConfig("Daya (W)", "#2563EB").data
-  );
-  const [chartDataRupiah, setChartDataRupiah] = useState(
-    emptyConfig("Biaya (Rp)", "#EF4444").data
-  );
-
-  // States for modal inputs
-  const [modalLevel, setModalLevel] = useState("");
-  const [modalThreshold, setModalThreshold] = useState("");
-  const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
-
+  const [chartDataRPM, setChartDataRPM] = useState(emptyConfig('RPM', '#10B981').data);
+  const [chartDataBerat, setChartDataBerat] = useState(emptyConfig('Berat', '#7C3AED').data);
+  const [chartDataWatt, setChartDataWatt] = useState(emptyConfig('Daya (W)', '#2563EB').data);
+  const [chartDataRupiah, setChartDataRupiah] = useState(emptyConfig('Biaya (Rp)', '#EF4444').data);
+  
   const firebase = useFirebase();
   const db = firebase ? getDatabase(firebase.app) : null;
 
@@ -207,68 +166,50 @@ export default function DashboardPage() {
     // Listener for historical data to build charts and update cards
     const dataRef = ref(db, `data/${currentAlat.id}`);
     const dataListener = onValue(dataRef, (snapshot) => {
-      const rawData = snapshot.val() || {};
-      const points: DataPoint[] = Object.keys(rawData)
-        .map((key) => ({
-          t: Number(key),
-          rpm: rawData[key].rpm,
-          berat: rawData[key].berat,
-          watt: rawData[key].watt,
-        }))
-        .sort((a, b) => a.t - b.t);
+        const rawData = snapshot.val() || {};
+        const points: DataPoint[] = Object.keys(rawData).map(key => ({
+            t: Number(key),
+            rpm: rawData[key].rpm,
+            berat: rawData[key].berat,
+            watt: rawData[key].watt,
+        })).sort((a, b) => a.t - b.t);
 
-      setDataPoints(points);
-      setLastSync(new Date().toLocaleString());
+        setLastSync(new Date().toLocaleString());
 
-      if (points.length > 0) {
-        const lastPoint = points[points.length - 1];
+        if (points.length > 0) {
+            const lastPoint = points[points.length - 1];
+            
+            // Update cards with the latest data from the 'data' path
+            setRpmValue(lastPoint.rpm?.toString() ?? '—');
+            setBeratValue(lastPoint.berat ? `${lastPoint.berat.toFixed(2)} kg` : '—');
+            setWattValue(lastPoint.watt ? `${lastPoint.watt} W` : '—');
 
-        // Update cards with the latest data from the 'data' path
-        setRpmValue(lastPoint.rpm?.toString() ?? "—");
-        setBeratValue(
-          lastPoint.berat ? `${lastPoint.berat.toFixed(2)} kg` : "—"
-        );
-        setWattValue(lastPoint.watt ? `${lastPoint.watt} W` : "—");
+            const { cost, costByHour } = computeEnergyAndCost(points);
+            setRupiahValue(cost ? `Rp ${Math.round(cost).toLocaleString('id-ID')}` : '—');
 
-        const { cost, costByHour } = computeEnergyAndCost(points);
-        setRupiahValue(
-          cost ? `Rp ${Math.round(cost).toLocaleString("id-ID")}` : "—"
-        );
+            const labels = points.map(p => new Date(p.t * 1000));
 
-        const labels = points.map((p) => new Date(p.t * 1000));
-
-        setChartDataRPM({
-          labels,
-          datasets: [
-            { ...chartDataRPM.datasets[0], data: points.map((p) => p.rpm) },
-          ],
-        });
-        setChartDataBerat({
-          labels,
-          datasets: [
-            { ...chartDataBerat.datasets[0], data: points.map((p) => p.berat) },
-          ],
-        });
-        setChartDataWatt({
-          labels,
-          datasets: [
-            { ...chartDataWatt.datasets[0], data: points.map((p) => p.watt) },
-          ],
-        });
-
-        const costChartConfig = emptyConfig("Biaya (Rp)", "#EF4444");
-        costChartConfig.options.scales!.x!.time!.unit = "hour";
-
-        setChartDataRupiah({
-          labels: costByHour.map((c) => new Date(c.t)),
-          datasets: [
-            {
-              ...costChartConfig.data.datasets[0],
-              data: costByHour.map((c) => c.cost),
-            },
-          ],
-        });
-      }
+            setChartDataRPM({
+                labels,
+                datasets: [{ ...chartDataRPM.datasets[0], data: points.map(p => p.rpm) }],
+            });
+            setChartDataBerat({
+                labels,
+                datasets: [{ ...chartDataBerat.datasets[0], data: points.map(p => p.berat) }],
+            });
+            setChartDataWatt({
+                labels,
+                datasets: [{ ...chartDataWatt.datasets[0], data: points.map(p => p.watt) }],
+            });
+            
+            const costChartConfig = emptyConfig('Biaya (Rp)', '#EF4444');
+            costChartConfig.options.scales!.x!.time!.unit = 'hour';
+            
+            setChartDataRupiah({
+                labels: costByHour.map(c => new Date(c.t)),
+                datasets: [{ ...costChartConfig.data.datasets[0], data: costByHour.map(c => c.cost) }],
+            });
+        }
     });
 
     return () => {
@@ -355,12 +296,6 @@ export default function DashboardPage() {
         <div id="lastSync" className="text-xs sm:text-sm text-zinc-600">
           Last sync: {lastSync}
         </div>
-      </div>
-
-      <div className="mt-4">
-        <Button onClick={handleOpenSettings} disabled={!isMonitoring}>
-          Input Pengaturan
-        </Button>
       </div>
 
       <div className="mt-6">
@@ -501,52 +436,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-
-      <Dialog open={isSettingOpen} onOpenChange={setIsSettingOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Input Pengaturan Mesin</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="modalLevel">Set Mode RPM</Label>
-              <Select
-                name="level"
-                id="modalLevel"
-                value={modalLevel}
-                onValueChange={setModalLevel}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih Level RPM" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">Netral</SelectItem>
-                  <SelectItem value="1">Level 1</SelectItem>
-                  <SelectItem value="2">Level 2</SelectItem>
-                  <SelectItem value="3">Level 3</SelectItem>
-                  <SelectItem value="4">Level 4</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="modalThreshold">Threshold Berat (Kg)</Label>
-              <Input
-                type="number"
-                id="modalThreshold"
-                placeholder="Masukkan threshold"
-                value={modalThreshold}
-                onChange={(e) => setModalThreshold(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSettingOpen(false)}>
-              Batal
-            </Button>
-            <Button onClick={handleSaveSettings}>Simpan</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
